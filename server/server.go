@@ -45,7 +45,7 @@ func (this *Server) Handler(conn net.Conn) {
 	//监听用户是否活跃
 	isLive := make(chan bool)
 
-	//v0.3 接受客户端发送的消息
+	//接受客户端发送的消息
 	go func() {
 		buf := make([]byte, 4096)
 		for {
