@@ -35,15 +35,10 @@ func (this *Server) Handler(conn net.Conn) {
 	//..当前连接的业务
 	fmt.Println("OKOKOK")
 
-	user := NewUser(conn)
+	user := NewUser(conn, this)
 
-	// //用户上线，将用户加入onlinemap
-	this.maplock.Lock()
-	this.OnlineMap[user.Name] = user
-	this.maplock.Unlock()
-
-	//广播消息
-	this.BroadCast(user, "online")
+	//用户上线，将用户加入onlinemap
+	user.Online()
 
 	//v0.3 接受客户端发送的消息
 	go func() {
@@ -51,7 +46,7 @@ func (this *Server) Handler(conn net.Conn) {
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				this.BroadCast(user, "offline")
+				user.Offline()
 				return
 			}
 
@@ -64,7 +59,8 @@ func (this *Server) Handler(conn net.Conn) {
 			msg := string(buf[:n-1])
 
 			//用户针对msg进行消息处理
-			this.BroadCast(user, msg)
+			user.DoMessage(msg)
+
 		}
 	}()
 
