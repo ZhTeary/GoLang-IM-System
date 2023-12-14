@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -40,11 +42,14 @@ func (this *Server) Handler(conn net.Conn) {
 	//用户上线，将用户加入onlinemap
 	user.Online()
 
+	//监听用户是否活跃
+	isLive := make(chan bool)
+
 	//v0.3 接受客户端发送的消息
 	go func() {
 		buf := make([]byte, 4096)
 		for {
-			n, err := conn.Read(buf)
+			n, err := conn.Read(buf) //读取用户发过来的消息
 			if n == 0 {
 				user.Offline()
 				return
@@ -60,12 +65,28 @@ func (this *Server) Handler(conn net.Conn) {
 
 			//用户针对msg进行消息处理
 			user.DoMessage(msg)
+			isLive <- true //用户的任意操作都代表目前活跃，重置定时器
 
 		}
 	}()
 
-	//当前handler阻塞
-	select {}
+	//当前handler阻塞，不能关闭当前的handler
+	for {
+		select {
+		//timer
+		case <-isLive:
+			//活跃，为了激活select，重置定时器
+		case <-time.After(time.Second * 10):
+			//关闭User
+			user.sendMsg("CLOSED cause not active")
+			user.Offline()
+			//三件套：销毁-关闭-退出
+			close(user.C)    //销毁资源
+			conn.Close()     //关闭连接
+			runtime.Goexit() //退出 用return也行
+		}
+	}
+
 }
 
 // 广播消息内容
