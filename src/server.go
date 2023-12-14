@@ -76,7 +76,7 @@ func (this *Server) Handler(conn net.Conn) {
 		//timer
 		case <-isLive:
 			//活跃，为了激活select，重置定时器
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Second * 300):
 			//关闭User
 			user.sendMsg("CLOSED cause not active")
 			user.Offline()
